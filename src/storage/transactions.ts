@@ -2,7 +2,10 @@ import { CategoryTotal, DayTotals, NewTransaction, Transaction } from '../types/
 import { endOfDay, isSameDay, startOfDay, startOfMonth, toISODate } from '../utils/date';
 import { getDatabase } from './database';
 
+const ACTIVE_FILTER = 'deletedAt IS NULL';
+
 function rowToTransaction(row: Record<string, unknown>): Transaction {
+  const createdAt = String(row.createdAt);
   return {
     id: String(row.id),
     type: row.type as Transaction['type'],
@@ -13,7 +16,9 @@ function rowToTransaction(row: Record<string, unknown>): Transaction {
     who: row.who ? String(row.who) : null,
     note: row.note ? String(row.note) : null,
     date: String(row.date),
-    createdAt: String(row.createdAt),
+    createdAt,
+    updatedAt: row.updatedAt ? String(row.updatedAt) : createdAt,
+    deletedAt: row.deletedAt ? String(row.deletedAt) : null,
   };
 }
 
@@ -31,11 +36,13 @@ export async function addTransaction(input: NewTransaction): Promise<Transaction
     note: input.note ?? null,
     date: input.date ?? now,
     createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
   };
 
   await database.runAsync(
-    `INSERT INTO transactions (id, type, amount, category, method, place, who, note, date, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO transactions (id, type, amount, category, method, place, who, note, date, createdAt, updatedAt, deletedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     transaction.id,
     transaction.type,
     transaction.amount,
@@ -46,19 +53,106 @@ export async function addTransaction(input: NewTransaction): Promise<Transaction
     transaction.note,
     transaction.date,
     transaction.createdAt,
+    transaction.updatedAt,
+    transaction.deletedAt ?? null,
   );
 
   return transaction;
 }
 
-export async function deleteTransaction(id: string): Promise<void> {
+export async function upsertTransaction(transaction: Transaction): Promise<void> {
   const database = await getDatabase();
-  await database.runAsync('DELETE FROM transactions WHERE id = ?', id);
+
+  await database.runAsync(
+    `INSERT INTO transactions (id, type, amount, category, method, place, who, note, date, createdAt, updatedAt, deletedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       type = excluded.type,
+       amount = excluded.amount,
+       category = excluded.category,
+       method = excluded.method,
+       place = excluded.place,
+       who = excluded.who,
+       note = excluded.note,
+       date = excluded.date,
+       createdAt = excluded.createdAt,
+       updatedAt = excluded.updatedAt,
+       deletedAt = excluded.deletedAt`,
+    transaction.id,
+    transaction.type,
+    transaction.amount,
+    transaction.category,
+    transaction.method,
+    transaction.place,
+    transaction.who,
+    transaction.note,
+    transaction.date,
+    transaction.createdAt,
+    transaction.updatedAt,
+    transaction.deletedAt ?? null,
+  );
 }
 
-export async function clearAllTransactions(): Promise<void> {
+export async function deleteTransaction(id: string): Promise<Transaction | null> {
   const database = await getDatabase();
-  await database.runAsync('DELETE FROM transactions');
+  const row = await database.getFirstAsync<Record<string, unknown>>(
+    'SELECT * FROM transactions WHERE id = ?',
+    id,
+  );
+
+  if (!row) {
+    return null;
+  }
+
+  const deletedAt = toISODate();
+  await database.runAsync(
+    'UPDATE transactions SET deletedAt = ?, updatedAt = ? WHERE id = ?',
+    deletedAt,
+    deletedAt,
+    id,
+  );
+
+  return {
+    ...rowToTransaction(row),
+    deletedAt,
+    updatedAt: deletedAt,
+  };
+}
+
+export async function clearAllTransactions(): Promise<Transaction[]> {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<Record<string, unknown>>(
+    `SELECT * FROM transactions WHERE ${ACTIVE_FILTER}`,
+  );
+  const deletedAt = toISODate();
+
+  await database.runAsync(
+    `UPDATE transactions SET deletedAt = ?, updatedAt = ? WHERE ${ACTIVE_FILTER}`,
+    deletedAt,
+    deletedAt,
+  );
+
+  return rows.map((row) => ({
+    ...rowToTransaction(row),
+    deletedAt,
+    updatedAt: deletedAt,
+  }));
+}
+
+export async function getAllTransactions(): Promise<Transaction[]> {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<Record<string, unknown>>(
+    `SELECT * FROM transactions WHERE ${ACTIVE_FILTER} ORDER BY date DESC`,
+  );
+  return rows.map(rowToTransaction);
+}
+
+export async function getAllTransactionsForSync(): Promise<Transaction[]> {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<Record<string, unknown>>(
+    'SELECT * FROM transactions ORDER BY date DESC',
+  );
+  return rows.map(rowToTransaction);
 }
 
 export async function getTransactionsForDay(date = new Date()): Promise<Transaction[]> {
@@ -66,7 +160,7 @@ export async function getTransactionsForDay(date = new Date()): Promise<Transact
   const start = toISODate(startOfDay(date));
   const end = toISODate(endOfDay(date));
   const rows = await database.getAllAsync<Record<string, unknown>>(
-    'SELECT * FROM transactions WHERE date >= ? AND date <= ? ORDER BY date DESC',
+    `SELECT * FROM transactions WHERE ${ACTIVE_FILTER} AND date >= ? AND date <= ? ORDER BY date DESC`,
     start,
     end,
   );
@@ -78,7 +172,7 @@ export async function getTransactionsForMonth(date = new Date()): Promise<Transa
   const start = toISODate(startOfMonth(date));
   const end = toISODate(endOfDay(date));
   const rows = await database.getAllAsync<Record<string, unknown>>(
-    'SELECT * FROM transactions WHERE date >= ? AND date <= ? ORDER BY date DESC',
+    `SELECT * FROM transactions WHERE ${ACTIVE_FILTER} AND date >= ? AND date <= ? ORDER BY date DESC`,
     start,
     end,
   );

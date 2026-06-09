@@ -1,7 +1,9 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from '../src/context/AuthContext';
+import { SubscriptionProvider } from '../src/context/SubscriptionContext';
 import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import { TransactionProvider } from '../src/context/TransactionContext';
 
@@ -25,6 +27,13 @@ function RootNavigator() {
             animation: 'slide_from_bottom',
           }}
         />
+        <Stack.Screen
+          name="sign-in"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
       </Stack>
     </>
   );
@@ -35,9 +44,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <TransactionProvider>
-            <RootNavigator />
-          </TransactionProvider>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <TransactionProvider>
+                <RootNavigator />
+              </TransactionProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

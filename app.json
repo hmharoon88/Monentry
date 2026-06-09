@@ -14,10 +14,26 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.monentry.app"
+      "bundleIdentifier": "com.monentry.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          }
+        ]
+      }
     },
     "android": {
       "package": "com.monentry.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#2D6A4F",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -33,6 +49,14 @@
     "plugins": [
       "expo-router",
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      },
+      "privacyPolicyUrl": "https://hmharoon88.github.io/Monentry/privacy.html",
+      "supportUrl": "https://hmharoon88.github.io/Monentry/support.html"
+    },
+    "owner": "YOUR_EXPO_ACCOUNT"
   }
 }

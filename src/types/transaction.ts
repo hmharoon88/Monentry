@@ -11,6 +11,8 @@ export interface Transaction {
   note: string | null;
   date: string;
   createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
 }
 
 export interface NewTransaction {

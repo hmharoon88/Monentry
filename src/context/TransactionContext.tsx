@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { useAuth } from './AuthContext';
 import {
   addTransaction,
   calculateDayTotals,
@@ -16,6 +17,11 @@ import {
   getTransactionsForMonth,
   groupByCategory,
 } from '../storage/transactions';
+import {
+  pushClearAll,
+  pushDelete,
+  pushTransaction,
+} from '../sync/firestoreSync';
 import { CategoryTotal, DayTotals, NewTransaction, Transaction } from '../types/transaction';
 
 interface TransactionContextValue {
@@ -34,6 +40,7 @@ interface TransactionContextValue {
 const TransactionContext = createContext<TransactionContextValue | null>(null);
 
 export function TransactionProvider({ children }: { children: ReactNode }) {
+  const { user, syncEnabled, lastSyncedAt } = useAuth();
   const [todayTransactions, setTodayTransactions] = useState<Transaction[]>([]);
   const [monthTransactions, setMonthTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,28 +57,46 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+  }, [refresh, lastSyncedAt]);
 
   const createTransaction = useCallback(
     async (input: NewTransaction) => {
-      await addTransaction(input);
+      const transaction = await addTransaction(input);
+
+      if (syncEnabled && user) {
+        await pushTransaction(user.uid, transaction);
+      }
+
       await refresh();
     },
-    [refresh],
+    [refresh, syncEnabled, user],
   );
 
   const removeTransaction = useCallback(
     async (id: string) => {
-      await deleteTransaction(id);
+      const deleted = await deleteTransaction(id);
+
+      if (syncEnabled && user && deleted) {
+        await pushDelete(user.uid, deleted.id, deleted.updatedAt);
+      }
+
       await refresh();
     },
-    [refresh],
+    [refresh, syncEnabled, user],
   );
 
   const clearAll = useCallback(async () => {
-    await clearAllTransactions();
+    const deleted = await clearAllTransactions();
+
+    if (syncEnabled && user && deleted.length > 0) {
+      await pushClearAll(
+        user.uid,
+        deleted.map((tx) => tx.id),
+      );
+    }
+
     await refresh();
-  }, [refresh]);
+  }, [refresh, syncEnabled, user]);
 
   const todayTotals = useMemo(
     () => calculateDayTotals(todayTransactions),
