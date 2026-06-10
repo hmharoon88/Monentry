@@ -106,8 +106,8 @@ export default function SignInScreen() {
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {mode === 'sign-in'
-              ? 'Back up and sync your entries across devices with Monentry Plus.'
-              : 'Create an account to enable cloud backup when you upgrade to Plus.'}
+              ? 'Sign in to restore your entries on this device, or pick up where you left off on a new phone.'
+              : 'Create a free account to back up your entries. If you change phones, sign in to get everything back.'}
           </Text>
 
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>

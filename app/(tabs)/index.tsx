@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '../../src/components/EmptyState';
+import { BackupBanner } from '../../src/components/BackupBanner';
 import { TransactionRow } from '../../src/components/TransactionRow';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useTransactions } from '../../src/context/TransactionContext';
@@ -27,6 +28,7 @@ export default function TodayScreen() {
       </View>
 
       <View style={styles.hero}>
+        <BackupBanner />
         <Text style={[styles.heroLabel, { color: colors.textSecondary }]}>Spent today</Text>
         <Text style={[styles.heroAmount, { color: colors.expense }]}>
           {formatAmount(todayTotals.expense)}

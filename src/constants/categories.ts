@@ -37,17 +37,17 @@ export type SubscriptionTier = 'free' | 'plus' | 'family';
 export const SUBSCRIPTION_INFO = {
   free: {
     label: 'Free',
-    description: 'Local only · 1 user · No cloud sync',
+    description: 'Cloud backup when signed in · All your devices',
     price: '$0',
   },
   plus: {
     label: 'Plus',
-    description: 'Cloud sync · Backup · All devices',
+    description: 'Support Monentry · Early access to new features',
     price: '$1.99/mo',
   },
   family: {
     label: 'Family',
-    description: 'Everything in Plus · Share with up to 6',
+    description: 'Share with up to 6 · Coming soon',
     price: '$4.99/mo',
   },
 } as const;

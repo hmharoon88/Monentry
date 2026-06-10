@@ -18,7 +18,7 @@ import {
 import { SubscriptionTier } from '../constants/categories';
 import { getFirebaseAuth, isFirebaseConfigured } from '../config/firebase';
 import {
-  canSyncWithTier,
+  canSyncForAccount,
   ensureUserProfile,
   fetchUserProfile,
   fullSync,
@@ -55,8 +55,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const firebaseReady = isFirebaseConfigured();
 
   const tier: SubscriptionTier = profile?.tier ?? 'free';
-  const canSync = firebaseReady && Boolean(user) && canSyncWithTier(tier);
-  const syncEnabled = canSync;
+  const syncEnabled = canSyncForAccount(firebaseReady, Boolean(user));
+  const canSync = syncEnabled;
+
+  const runFullSync = useCallback(async (uid: string) => {
+    setSyncing(true);
+    try {
+      await fullSync(uid);
+      setLastSyncedAt(Date.now());
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
 
   const loadProfile = useCallback(async (nextUser: User) => {
     let nextProfile = await fetchUserProfile(nextUser.uid);
@@ -79,18 +89,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile, user]);
 
   const triggerSync = useCallback(async () => {
-    if (!user || !canSyncWithTier(profile?.tier ?? 'free')) {
+    if (!user || !canSyncForAccount(firebaseReady, true)) {
       return;
     }
 
-    setSyncing(true);
-    try {
-      await fullSync(user.uid);
-      setLastSyncedAt(Date.now());
-    } finally {
-      setSyncing(false);
-    }
-  }, [profile?.tier, user]);
+    await runFullSync(user.uid);
+  }, [firebaseReady, runFullSync, user]);
 
   useEffect(() => {
     if (!firebaseReady) {
@@ -109,50 +113,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const nextProfile = await loadProfile(nextUser);
-      if (canSyncWithTier(nextProfile.tier)) {
-        setSyncing(true);
-        try {
-          await fullSync(nextUser.uid);
-          setLastSyncedAt(Date.now());
-        } finally {
-          setSyncing(false);
-        }
-      }
-
+      await loadProfile(nextUser);
+      await runFullSync(nextUser.uid);
       setAuthLoading(false);
     });
 
     return unsubscribe;
-  }, [firebaseReady, loadProfile]);
+  }, [firebaseReady, loadProfile, runFullSync]);
 
   useEffect(() => {
-    if (!user || !canSyncWithTier(profile?.tier ?? 'free')) {
-      return;
-    }
-
-    let cancelled = false;
-
-    setSyncing(true);
-    fullSync(user.uid)
-      .then(() => {
-        if (!cancelled) {
-          setLastSyncedAt(Date.now());
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setSyncing(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [profile?.tier, user]);
-
-  useEffect(() => {
-    if (!user || !canSyncWithTier(profile?.tier ?? 'free')) {
+    if (!user || !canSyncForAccount(firebaseReady, true)) {
       return;
     }
 
@@ -180,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       unsubscribe();
     };
-  }, [profile?.tier, user]);
+  }, [firebaseReady, user]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     await signInWithEmailAndPassword(getFirebaseAuth(), email.trim(), password);

@@ -30,7 +30,6 @@ export default function MeScreen() {
   const {
     user,
     tier,
-    canSync,
     syncEnabled,
     syncing,
     firebaseReady,
@@ -59,7 +58,7 @@ export default function MeScreen() {
 
     try {
       await action();
-      Alert.alert('Success', `${label} is now active. Cloud sync will start shortly.`);
+      Alert.alert('Success', `${label} is now active.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Purchase failed.';
       if (!message.toLowerCase().includes('cancel')) {
@@ -101,7 +100,12 @@ export default function MeScreen() {
           <Text style={[styles.planDesc, { color: colors.textSecondary }]}>{planInfo.description}</Text>
           {syncEnabled && (
             <Text style={[styles.syncStatus, { color: colors.primary }]}>
-              {syncing ? 'Syncing with cloud…' : 'Cloud sync active'}
+              {syncing ? 'Syncing with cloud…' : 'Backed up to cloud'}
+            </Text>
+          )}
+          {!syncEnabled && firebaseReady && (
+            <Text style={[styles.syncStatus, { color: colors.accent }]}>
+              Sign in to enable cloud backup
             </Text>
           )}
         </View>
@@ -119,20 +123,16 @@ export default function MeScreen() {
             <>
               <Text style={[styles.accountTitle, { color: colors.textPrimary }]}>{user.email}</Text>
               <Text style={[styles.accountDesc, { color: colors.textSecondary }]}>
-                {canSync
-                  ? 'Your entries sync to Firebase when you add, edit, or delete them.'
-                  : 'Subscribe to Monentry Plus below to enable cloud backup and sync.'}
+                Your entries are saved to the cloud. Sign in on a new phone to restore the same data.
               </Text>
-              {canSync && (
-                <Pressable
-                  onPress={() => triggerSync().catch(() => Alert.alert('Sync failed', 'Try again in a moment.'))}
-                  style={[styles.secondaryButton, { borderColor: colors.border }]}
-                >
-                  <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>
-                    Sync now
-                  </Text>
-                </Pressable>
-              )}
+              <Pressable
+                onPress={() => triggerSync().catch(() => Alert.alert('Sync failed', 'Try again in a moment.'))}
+                style={[styles.secondaryButton, { borderColor: colors.border }]}
+              >
+                <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>
+                  {syncing ? 'Syncing…' : 'Sync now'}
+                </Text>
+              </Pressable>
               <Pressable
                 onPress={() =>
                   signOut().catch(() => Alert.alert('Sign out failed', 'Try again in a moment.'))
@@ -146,9 +146,9 @@ export default function MeScreen() {
             </>
           ) : (
             <>
-              <Text style={[styles.accountTitle, { color: colors.textPrimary }]}>Sign in for cloud backup</Text>
+              <Text style={[styles.accountTitle, { color: colors.textPrimary }]}>Sign in to back up your data</Text>
               <Text style={[styles.accountDesc, { color: colors.textSecondary }]}>
-                Create an account to prepare for Monentry Plus cloud sync across your devices.
+                Create a free account to save your entries to the cloud. On a new phone, sign in to get everything back.
               </Text>
               <Pressable
                 onPress={() => router.push('/sign-in')}

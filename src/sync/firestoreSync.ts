@@ -67,8 +67,8 @@ function fromFirestoreTransaction(data: Record<string, unknown>): Transaction {
   };
 }
 
-export function canSyncWithTier(tier: SubscriptionTier): boolean {
-  return tier === 'plus' || tier === 'family';
+export function canSyncForAccount(firebaseReady: boolean, signedIn: boolean): boolean {
+  return firebaseReady && signedIn;
 }
 
 export async function ensureUserProfile(uid: string, email: string): Promise<UserProfile> {
