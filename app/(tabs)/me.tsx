@@ -40,6 +40,8 @@ export default function MeScreen() {
     revenueCatReady,
     offeringsLoading,
     purchasing,
+    plusPriceLabel,
+    familyPriceLabel,
     purchasePlus,
     purchaseFamily,
     restorePurchases,
@@ -121,7 +123,9 @@ export default function MeScreen() {
             </>
           ) : user ? (
             <>
-              <Text style={[styles.accountTitle, { color: colors.textPrimary }]}>{user.email}</Text>
+              <Text style={[styles.accountTitle, { color: colors.textPrimary }]}>
+                {user.email ?? 'Signed in'}
+              </Text>
               <Text style={[styles.accountDesc, { color: colors.textSecondary }]}>
                 Your entries are saved to the cloud. Sign in on a new phone to restore the same data.
               </Text>
@@ -210,7 +214,9 @@ export default function MeScreen() {
                   {SUBSCRIPTION_INFO[upgradeTier].label}
                 </Text>
                 <Text style={[styles.upgradePrice, { color: colors.primary }]}>
-                  {SUBSCRIPTION_INFO[upgradeTier].price}
+                  {upgradeTier === 'plus'
+                    ? plusPriceLabel ?? SUBSCRIPTION_INFO.plus.price
+                    : familyPriceLabel ?? SUBSCRIPTION_INFO.family.price}
                 </Text>
               </View>
               <Text style={[styles.upgradeDesc, { color: colors.textSecondary }]}>
@@ -239,9 +245,11 @@ export default function MeScreen() {
                   <Text style={[styles.subscribeButtonText, { color: colors.onPrimary }]}>
                     {purchasing
                       ? 'Processing…'
-                      : !revenueCatReady
-                        ? 'Billing not configured'
-                        : 'Subscribe to Plus'}
+                      : offeringsLoading
+                        ? 'Loading price…'
+                        : !revenueCatReady
+                          ? 'Billing not configured'
+                          : `Subscribe · ${plusPriceLabel ?? SUBSCRIPTION_INFO.plus.price}`}
                   </Text>
                 </Pressable>
               )}
@@ -249,15 +257,22 @@ export default function MeScreen() {
           );
         })}
         {revenueCatReady && (
-          <Pressable
-            disabled={purchasing}
-            onPress={handleRestore}
-            style={[styles.restoreButton, { borderColor: colors.border }]}
-          >
-            <Text style={[styles.restoreButtonText, { color: colors.textSecondary }]}>
-              Restore purchases
+          <>
+            <Pressable
+              disabled={purchasing}
+              onPress={handleRestore}
+              style={[styles.restoreButton, { borderColor: colors.border }]}
+            >
+              <Text style={[styles.restoreButtonText, { color: colors.textSecondary }]}>
+                Restore purchases
+              </Text>
+            </Pressable>
+            <Text style={[styles.subscriptionTerms, { color: colors.textTertiary }]}>
+              Payment is charged to your Apple ID. Subscriptions renew automatically unless
+              canceled at least 24 hours before the end of the period. Manage in Settings → Apple
+              ID → Subscriptions.
             </Text>
-          </Pressable>
+          </>
         )}
 
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>About</Text>
@@ -452,6 +467,11 @@ const styles = StyleSheet.create({
   restoreButtonText: {
     fontSize: typography.label,
     fontWeight: '600',
+  },
+  subscriptionTerms: {
+    fontSize: typography.caption,
+    lineHeight: 18,
+    marginBottom: spacing.md,
   },
   linkRow: {
     flexDirection: 'row',

@@ -1,17 +1,19 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SocialSignInButtons } from '../src/components/SocialSignInButtons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { radius, spacing, typography } from '../src/theme';
@@ -28,11 +30,24 @@ function getErrorMessage(error: unknown): string {
 export default function SignInScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { signIn, signUp, resetPassword, firebaseReady } = useAuth();
+  const { signIn, signUp, resetPassword, signInWithApple, signInWithGoogleIdToken, firebaseReady } =
+    useAuth();
   const [mode, setMode] = useState<Mode>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const finishAuth = useCallback(() => {
+    router.back();
+  }, [router]);
+
+  const handleAuthError = useCallback((title: string, error: unknown) => {
+    const message = getErrorMessage(error);
+    if (message.toLowerCase().includes('cancel')) {
+      return;
+    }
+    Alert.alert(title, message);
+  }, []);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password) {
@@ -47,9 +62,9 @@ export default function SignInScreen() {
       } else {
         await signUp(email, password);
       }
-      router.back();
+      finishAuth();
     } catch (error) {
-      Alert.alert(mode === 'sign-in' ? 'Sign in failed' : 'Sign up failed', getErrorMessage(error));
+      handleAuthError(mode === 'sign-in' ? 'Sign in failed' : 'Sign up failed', error);
     } finally {
       setSubmitting(false);
     }
@@ -68,6 +83,29 @@ export default function SignInScreen() {
       Alert.alert('Reset failed', getErrorMessage(error));
     }
   };
+
+  const handleApple = useCallback(async () => {
+    try {
+      await signInWithApple();
+      finishAuth();
+    } catch (error) {
+      handleAuthError('Apple sign in failed', error);
+      throw error;
+    }
+  }, [finishAuth, handleAuthError, signInWithApple]);
+
+  const handleGoogle = useCallback(
+    async (idToken: string) => {
+      try {
+        await signInWithGoogleIdToken(idToken);
+        finishAuth();
+      } catch (error) {
+        handleAuthError('Google sign in failed', error);
+        throw error;
+      }
+    },
+    [finishAuth, handleAuthError, signInWithGoogleIdToken],
+  );
 
   if (!firebaseReady) {
     return (
@@ -94,74 +132,85 @@ export default function SignInScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
       >
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <Text style={[styles.close, { color: colors.primary }]}>Close</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.content}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
-            {mode === 'sign-in' ? 'Sign in' : 'Create account'}
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {mode === 'sign-in'
-              ? 'Sign in to restore your entries on this device, or pick up where you left off on a new phone.'
-              : 'Create a free account to back up your entries. If you change phones, sign in to get everything back.'}
-          </Text>
-
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              placeholder="you@example.com"
-              placeholderTextColor={colors.textTertiary}
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
-            />
-
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              textContentType={mode === 'sign-in' ? 'password' : 'newPassword'}
-              placeholder="At least 6 characters"
-              placeholderTextColor={colors.textTertiary}
-              style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
-            />
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <Pressable onPress={() => router.back()} hitSlop={12}>
+              <Text style={[styles.close, { color: colors.primary }]}>Close</Text>
+            </Pressable>
           </View>
 
-          <Pressable
-            onPress={handleSubmit}
-            disabled={submitting}
-            style={[styles.primaryButton, { backgroundColor: colors.primary, opacity: submitting ? 0.7 : 1 }]}
-          >
-            {submitting ? (
-              <ActivityIndicator color={colors.onPrimary} />
-            ) : (
-              <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-                {mode === 'sign-in' ? 'Sign in' : 'Create account'}
-              </Text>
-            )}
-          </Pressable>
-
-          <Pressable onPress={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}>
-            <Text style={[styles.link, { color: colors.primary }]}>
-              {mode === 'sign-in' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+          <View style={styles.content}>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>
+              {mode === 'sign-in' ? 'Sign in' : 'Create account'}
             </Text>
-          </Pressable>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              {mode === 'sign-in'
+                ? 'Sign in to restore your entries on this device, or pick up where you left off on a new phone.'
+                : 'Create a free account to back up your entries. If you change phones, sign in to get everything back.'}
+            </Text>
 
-          {mode === 'sign-in' && (
-            <Pressable onPress={handleResetPassword}>
-              <Text style={[styles.link, { color: colors.textSecondary }]}>Forgot password?</Text>
+            <SocialSignInButtons
+              onAppleSignIn={handleApple}
+              onGoogleIdToken={handleGoogle}
+              disabled={submitting}
+            />
+
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                placeholder="you@gmail.com · @icloud.com · @hotmail.com"
+                placeholderTextColor={colors.textTertiary}
+                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
+              />
+
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                textContentType={mode === 'sign-in' ? 'password' : 'newPassword'}
+                placeholder="At least 6 characters"
+                placeholderTextColor={colors.textTertiary}
+                style={[styles.input, { color: colors.textPrimary, borderColor: colors.border }]}
+              />
+            </View>
+
+            <Pressable
+              onPress={handleSubmit}
+              disabled={submitting}
+              style={[
+                styles.primaryButton,
+                { backgroundColor: colors.primary, opacity: submitting ? 0.7 : 1 },
+              ]}
+            >
+              {submitting ? (
+                <ActivityIndicator color={colors.onPrimary} />
+              ) : (
+                <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+                  {mode === 'sign-in' ? 'Sign in with email' : 'Create account with email'}
+                </Text>
+              )}
             </Pressable>
-          )}
-        </View>
+
+            <Pressable onPress={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}>
+              <Text style={[styles.link, { color: colors.primary }]}>
+                {mode === 'sign-in' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+              </Text>
+            </Pressable>
+
+            {mode === 'sign-in' && (
+              <Pressable onPress={handleResetPassword}>
+                <Text style={[styles.link, { color: colors.textSecondary }]}>Forgot password?</Text>
+              </Pressable>
+            )}
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -173,6 +222,10 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing.xxl,
   },
   centered: {
     flex: 1,

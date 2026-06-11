@@ -17,6 +17,7 @@ import {
 } from 'react';
 import { SubscriptionTier } from '../constants/categories';
 import { getFirebaseAuth, isFirebaseConfigured } from '../config/firebase';
+import { signInWithApple, signInWithGoogleIdToken } from '../auth/socialAuth';
 import {
   canSyncForAccount,
   ensureUserProfile,
@@ -40,6 +41,8 @@ interface AuthContextValue {
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  signInWithApple: () => Promise<void>;
+  signInWithGoogleIdToken: (idToken: string) => Promise<void>;
   triggerSync: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -174,6 +177,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await sendPasswordResetEmail(getFirebaseAuth(), email.trim());
   }, []);
 
+  const handleAppleSignIn = useCallback(async () => {
+    await signInWithApple();
+  }, []);
+
+  const handleGoogleSignIn = useCallback(async (idToken: string) => {
+    await signInWithGoogleIdToken(idToken);
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -189,6 +200,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       resetPassword,
+      signInWithApple: handleAppleSignIn,
+      signInWithGoogleIdToken: handleGoogleSignIn,
       triggerSync,
       refreshProfile,
     }),
@@ -206,6 +219,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       resetPassword,
+      handleAppleSignIn,
+      handleGoogleSignIn,
       triggerSync,
       refreshProfile,
     ],

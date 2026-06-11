@@ -29,6 +29,8 @@ interface SubscriptionContextValue {
   offering: PurchasesOffering | null;
   plusPackage: PurchasesPackage | null;
   familyPackage: PurchasesPackage | null;
+  plusPriceLabel: string | null;
+  familyPriceLabel: string | null;
   purchasePlus: () => Promise<void>;
   purchaseFamily: () => Promise<void>;
   restorePurchases: () => Promise<void>;
@@ -169,6 +171,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     [offering],
   );
 
+  const plusPriceLabel = plusPackage?.product.priceString ?? null;
+  const familyPriceLabel = familyPackage?.product.priceString ?? null;
+
   const purchasePackage = useCallback(
     async (pkg: PurchasesPackage | null, expectedTier: SubscriptionTier) => {
       if (!revenueCatReady) {
@@ -241,6 +246,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       offering,
       plusPackage,
       familyPackage,
+      plusPriceLabel,
+      familyPriceLabel,
       purchasePlus,
       purchaseFamily,
       restorePurchases,
@@ -252,6 +259,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       offering,
       plusPackage,
       familyPackage,
+      plusPriceLabel,
+      familyPriceLabel,
       purchasePlus,
       purchaseFamily,
       restorePurchases,

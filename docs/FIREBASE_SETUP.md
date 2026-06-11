@@ -1,6 +1,6 @@
 # Firebase setup for Monentry
 
-Monentry uses **Firebase Auth** (email/password) and **Cloud Firestore** for Plus-tier cloud sync.
+Monentry uses **Firebase Auth** (email, Google, Apple) and **Cloud Firestore** for cloud backup. All signed-in users get sync across devices.
 
 ## 1. Create a Firebase project
 
@@ -11,8 +11,32 @@ Monentry uses **Firebase Auth** (email/password) and **Cloud Firestore** for Plu
 
 ## 2. Enable Authentication
 
-1. Firebase Console → **Authentication** → **Sign-in method**
-2. Enable **Email/Password**
+Firebase Console → **Authentication** → **Sign-in method**:
+
+| Provider | Used for |
+|----------|----------|
+| **Email/Password** | Gmail, iCloud, Hotmail, Outlook, any email |
+| **Google** | Continue with Google button |
+| **Apple** | Sign in with Apple (required on iOS if Google is offered) |
+
+### Google Sign-In
+
+1. Enable **Google** in Firebase Authentication
+2. Copy the **Web client ID** from Firebase → Project settings → Your apps → Web app
+3. Add to `.env`:
+
+```bash
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id.apps.googleusercontent.com
+```
+
+The iOS client ID is in `GoogleService-Info.plist` or Google Cloud Console → Credentials → iOS client for `com.monentry.app`.
+
+### Apple Sign-In
+
+1. Enable **Apple** in Firebase Authentication
+2. Apple Developer → Identifiers → `com.monentry.app` → enable **Sign in with Apple**
+3. Rebuild the native app (`npx expo run:ios` or EAS build) — Apple Sign In does not work in Expo Go
 
 ## 3. Create Firestore database
 
@@ -28,33 +52,24 @@ Or paste `docs/firestore.rules` into the Firebase Console rules editor.
 
 ## 4. Add env vars locally
 
-Copy `.env.example` to `.env` and fill in your Web app config:
-
 ```bash
 cp .env.example .env
 ```
 
-Restart Metro after changing env vars:
+Fill in Firebase keys + Google client IDs. Restart Metro:
 
 ```bash
 npm start
 ```
 
-## 5. Enable cloud sync
+## 5. Cloud backup (all signed-in users)
 
-Cloud sync activates automatically when a user has an active **Plus** or **Family** subscription (via RevenueCat). See [REVENUECAT_SETUP.md](./REVENUECAT_SETUP.md).
+When a user signs in (email, Google, or Apple):
 
-For manual testing without a purchase:
+- Entries sync to Firestore automatically
+- On a new phone, sign in with the same account to restore everything
 
-1. Sign up in the app (Me → Sign in)
-2. Firebase Console → **Firestore** → `users/{uid}`
-3. Set field `tier` to `"plus"` or `"family"`
-4. Reopen the app or tap **Sync now** on the Me tab
-
-Sync runs when:
-
-- User is signed in
-- User profile `tier` is `plus` or `family`
+No subscription required for backup. See [REVENUECAT_SETUP.md](./REVENUECAT_SETUP.md) for optional Plus/Family payments.
 
 ## 6. Data model
 
@@ -74,13 +89,14 @@ users/{uid}/transactions/{transactionId}
 ## 7. How sync works
 
 - **Local-first:** SQLite remains the UI source of truth
-- **On sign-in (Plus):** merge remote + local, last-write-wins by `updatedAt`
+- **On sign-in:** merge remote + local, last-write-wins by `updatedAt`
 - **On add/delete:** write locally, then push to Firestore
 - **Real-time:** Firestore listener triggers merge when data changes on another device
 
 ## 8. Production checklist
 
 - [ ] Deploy Firestore security rules
-- [ ] Add Firebase keys to EAS secrets for production builds
-- [ ] Configure RevenueCat — see [REVENUECAT_SETUP.md](./REVENUECAT_SETUP.md)
+- [ ] Enable Email, Google, and Apple in Firebase Auth
+- [ ] Add Firebase + Google keys to EAS secrets for production builds
+- [ ] Configure RevenueCat for payments — see [REVENUECAT_SETUP.md](./REVENUECAT_SETUP.md)
 - [ ] Privacy policy mentions Firebase — already updated in `docs/privacy.html`
