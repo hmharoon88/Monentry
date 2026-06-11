@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.monentry.app",
+      "appleTeamId": "DTHF364HT2",
       "buildNumber": "1",
       "usesAppleSignIn": true,
       "infoPlist": {
