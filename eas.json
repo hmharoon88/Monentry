@@ -12,15 +12,6 @@
       },
       "env": {
         "APP_ENV": "development",
-        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_HzhRsHLHtpfPIFkIoqQxRqGuXmz",
-        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBeiv7BOLs4PRshDcWyRzYP8VehT_dUuI8",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "monentry-app.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "monentry-app",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "monentry-app.firebasestorage.app",
-        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "839435839292",
-        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:839435839292:web:864950f3c54b1d1cf86039",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "839435839292-0n032t1jhvnhmg6sopkhrl61buro0ei0.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "839435839292-93esgqbkipj1nqf2un56jo5ucrvm54to.apps.googleusercontent.com",
         "EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED": "true"
       }
     },
@@ -29,8 +20,10 @@
       "ios": {
         "simulator": false
       },
+      "environment": "preview",
       "env": {
-        "APP_ENV": "preview"
+        "APP_ENV": "preview",
+        "EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED": "true"
       }
     },
     "testflight": {
