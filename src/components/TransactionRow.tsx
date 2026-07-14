@@ -5,6 +5,10 @@ import { Transaction } from '../types/transaction';
 import { formatShortDate, formatTime, isSameDay } from '../utils/date';
 import { formatAmount } from '../utils/format';
 import { confirmDeleteEntry } from '../utils/confirmDelete';
+import {
+  getTransactionTitle,
+  shouldShowCategoryInMeta,
+} from '../utils/transactionDisplay';
 
 interface TransactionRowProps {
   transaction: Transaction;
@@ -20,6 +24,7 @@ export function TransactionRow({ transaction, onDelete, showDate }: TransactionR
     showDate && !isSameDay(transaction.date, new Date().toISOString())
       ? formatShortDate(transaction.date)
       : null,
+    shouldShowCategoryInMeta(transaction) ? transaction.category : null,
     transaction.place,
     transaction.method,
     formatTime(transaction.date),
@@ -37,7 +42,7 @@ export function TransactionRow({ transaction, onDelete, showDate }: TransactionR
     >
       <View style={styles.left}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>
-          {transaction.category}
+          {getTransactionTitle(transaction)}
         </Text>
         <Text style={[styles.meta, { color: colors.textSecondary }]}>
           {metaParts.join(' · ')}

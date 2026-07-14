@@ -2,6 +2,43 @@
 
 Monentry uses **Firebase Auth** (email, Google, Apple) and **Cloud Firestore** for cloud backup. All signed-in users get sync across devices.
 
+## Monentry project (already created)
+
+| Item | Value |
+|------|--------|
+| **Project ID** | `monentry-app` |
+| **Console** | [firebase.google.com/project/monentry-app](https://console.firebase.google.com/project/monentry-app/overview) |
+| **iOS app** | `com.monentry.app` |
+| **Firestore** | Created (`nam5`) + security rules deployed |
+| **Local `.env`** | Created with Web app keys |
+
+### One manual step left: turn on Authentication
+
+Firebase Auth must be started once in the console (free — no billing required):
+
+1. Open **[Authentication → Sign-in method](https://console.firebase.google.com/project/monentry-app/authentication/providers)**
+2. Click **Get started** (if shown)
+3. Enable **Email/Password**
+4. Enable **Google** (optional but recommended)
+5. Copy the **Web client ID** from the Google provider into `.env`:
+   ```bash
+   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=....apps.googleusercontent.com
+   ```
+6. Restart Metro: `npm start`, then reload the app (**⌘R**)
+
+### Show “Monentry” instead of `project-839435839292` on Google sign-in
+
+Google emails and the sign-in prompt use the **OAuth app name**, not `app.json`. Update it in two places:
+
+1. **Firebase** → Authentication → Google (pencil) → **Public-facing name** → `Monentry` → Save
+2. **Google Cloud** → [Auth Platform → Branding](https://console.cloud.google.com/auth/branding?project=monentry-app) → **App name** → `Monentry` → Save
+
+The Firebase project display name is already set to **Monentry**. Future sign-ins will use the new name after you save the branding above.
+
+After that, sign in works in the app via **Me → Sign in**.
+
+---
+
 ## 1. Create a Firebase project
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)

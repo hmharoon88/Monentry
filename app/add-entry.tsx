@@ -40,6 +40,10 @@ export default function AddEntryScreen() {
   const [saving, setSaving] = useState(false);
 
   const parsedAmount = useMemo(() => parseAmountInput(amount), [amount]);
+  const descriptionPlaceholder =
+    entryType === 'income'
+      ? 'e.g. Paycheck, freelance, refund'
+      : 'e.g. Weekly shop, dinner with Sam';
   const canSave = parsedAmount > 0 && !saving;
   const accentColor = entryType === 'expense' ? colors.expense : colors.income;
 
@@ -85,7 +89,27 @@ export default function AddEntryScreen() {
           {amount ? formatAmount(parsedAmount) : '$0'}
         </Text>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Type</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          Description <Text style={{ fontWeight: '400' }}>(optional)</Text>
+        </Text>
+        <TextInput
+          value={note}
+          onChangeText={setNote}
+          placeholder={descriptionPlaceholder}
+          placeholderTextColor={colors.textTertiary}
+          style={[
+            styles.descriptionInput,
+            {
+              color: colors.textPrimary,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        />
+
+        <Text style={[styles.sectionLabel, styles.sectionGap, { color: colors.textSecondary }]}>
+          Category
+        </Text>
         <TypeChips options={categories} selected={category} onSelect={setCategory} />
 
         <Pressable onPress={() => setShowMore((v) => !v)} style={styles.moreToggle}>
@@ -103,21 +127,6 @@ export default function AddEntryScreen() {
               Place
             </Text>
             <TypeChips options={PLACES} selected={place} onSelect={setPlace} />
-
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              placeholder="Note (optional)"
-              placeholderTextColor={colors.textTertiary}
-              style={[
-                styles.noteInput,
-                {
-                  color: colors.textPrimary,
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            />
           </View>
         )}
       </ScrollView>
@@ -199,9 +208,8 @@ const styles = StyleSheet.create({
   moreSection: {
     paddingBottom: spacing.sm,
   },
-  noteInput: {
+  descriptionInput: {
     marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: spacing.md,

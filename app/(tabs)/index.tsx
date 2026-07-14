@@ -3,7 +3,9 @@ import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '../../src/components/EmptyState';
+import { AppBrandTitle } from '../../src/components/AppBrandTitle';
 import { BackupBanner } from '../../src/components/BackupBanner';
+import { TodaySharingButton } from '../../src/components/TodaySharingCard';
 import { TransactionRow } from '../../src/components/TransactionRow';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useTransactions } from '../../src/context/TransactionContext';
@@ -23,7 +25,12 @@ export default function TodayScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[styles.brand, { color: colors.primary }]}>Monentry</Text>
+        <View style={styles.headerTop}>
+          <View style={styles.headerBrand}>
+            <AppBrandTitle />
+          </View>
+          <TodaySharingButton />
+        </View>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Today</Text>
       </View>
 
@@ -53,12 +60,17 @@ export default function TodayScreen() {
         </Pressable>
       </View>
 
+      <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Today&apos;s entries</Text>
+      <Text style={[styles.hint, { color: colors.textTertiary }]}>
+        Long-press an entry to delete it
+      </Text>
+
       <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <ScrollView>
           {todayTransactions.length === 0 ? (
             <EmptyState
               title="Nothing logged yet"
-              subtitle="Tap − Expense or + Income to log your first entry. Long-press to delete."
+              subtitle="Tap − Expense or + Income to log your first entry."
             />
           ) : (
             todayTransactions.map((tx) => (
@@ -84,9 +96,14 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
   },
-  brand: {
-    fontSize: typography.title,
-    fontWeight: '700',
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  headerBrand: {
+    flex: 1,
   },
   subtitle: {
     fontSize: typography.label,
@@ -135,6 +152,15 @@ const styles = StyleSheet.create({
   incomeButtonText: {
     fontSize: typography.body,
     fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: typography.body,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  hint: {
+    fontSize: typography.caption,
+    marginBottom: spacing.sm,
   },
   listCard: {
     flex: 1,

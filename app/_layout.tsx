@@ -3,6 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/context/AuthContext';
+import { HouseholdProvider } from '../src/context/HouseholdContext';
+import { SettleProvider } from '../src/context/SettleContext';
 import { SubscriptionProvider } from '../src/context/SubscriptionContext';
 import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import { TransactionProvider } from '../src/context/TransactionContext';
@@ -34,6 +36,21 @@ function RootNavigator() {
             animation: 'slide_from_bottom',
           }}
         />
+        <Stack.Screen
+          name="join"
+          options={{
+            presentation: 'modal',
+            animation: 'fade',
+          }}
+        />
+        <Stack.Screen name="settle-ledger/[id]" />
+        <Stack.Screen
+          name="join-settle"
+          options={{
+            presentation: 'modal',
+            animation: 'fade',
+          }}
+        />
       </Stack>
     </>
   );
@@ -46,9 +63,13 @@ export default function RootLayout() {
         <ThemeProvider>
           <AuthProvider>
             <SubscriptionProvider>
-              <TransactionProvider>
-                <RootNavigator />
-              </TransactionProvider>
+              <HouseholdProvider>
+                <SettleProvider>
+                  <TransactionProvider>
+                    <RootNavigator />
+                  </TransactionProvider>
+                </SettleProvider>
+              </HouseholdProvider>
             </SubscriptionProvider>
           </AuthProvider>
         </ThemeProvider>

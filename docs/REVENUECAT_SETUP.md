@@ -1,6 +1,27 @@
 # RevenueCat setup for Monentry
 
-Monentry uses [RevenueCat](https://www.revenuecat.com/) to manage Plus ($1.99/mo) and Family ($4.99/mo) subscriptions. Purchases update the user's `tier` in Firestore, which enables cloud sync.
+Monentry uses [RevenueCat](https://www.revenuecat.com/) for Plus ($1.99/mo) and Family ($4.99/mo). Purchases update `users/{uid}.tier` in Firestore (enables partner sharing, Settle, etc.).
+
+## Quick fix — “Billing not configured” on TestFlight
+
+Your `.env` must contain the **iOS public** key (`appl_…`). Then push it to EAS and rebuild:
+
+```bash
+# 1. Paste key into .env (see step 6 below)
+# 2. Verify
+npm run verify-revenuecat
+
+# 3. Log in and sync to EAS (TestFlight builds use production env)
+npx eas-cli login
+npm run sync-eas-env
+
+# 4. New TestFlight build
+npm run testflight
+```
+
+Local `.env` is **not** included in EAS builds automatically.
+
+---
 
 ## 1. Create a RevenueCat project
 
@@ -48,14 +69,29 @@ These IDs must match `src/constants/subscriptions.ts`.
 
 ## 5. Create an offering
 
-RevenueCat → **Offerings** → create **default** offering:
+RevenueCat → **Offerings** → **+ New** → create **`monentry_plans`** (leave old `default` alone):
 
 | Package | Product |
 |---------|---------|
-| `plus` (or `$rc_monthly`) | `monentry_plus_monthly` |
+| `plus` | `monentry_plus_monthly` |
 | `family` | `monentry_family_monthly` |
 
-Mark this offering as **Current**.
+Mark **`monentry_plans`** as **Current** (not `default`).
+
+### Auto-configure (recommended)
+
+If the Me tab shows **“plan not available yet”**, wire packages via the API:
+
+1. RevenueCat → **Project settings** → **API keys** → **+ New**
+2. Name: `Monentry configure` · **Version: V2** (legacy v1 `sk_` keys do **not** work)
+3. Permissions: enable **project_configuration** read/write (products, entitlements, offerings, packages)
+4. Add to `.env`: `REVENUECAT_SECRET_API_KEY=sk_…`
+5. Run:
+
+```bash
+npm run configure-revenuecat
+npm start -- --clear
+```
 
 ## 6. Add API keys to `.env`
 

@@ -58,13 +58,15 @@ Follow [APP_STORE.md](./APP_STORE.md):
 
 ## Phase 5 — TestFlight
 
-```bash
-eas submit --platform ios --profile production
-```
+See **[TESTFLIGHT.md](./TESTFLIGHT.md)** for partner setup.
 
-- [ ] Install on real iPhone via TestFlight
-- [ ] Full test pass (see APP_STORE.md checklist)
-- [ ] Fix any crashes or UX issues
+```bash
+eas login
+eas init
+bash scripts/sync-eas-env.sh
+# Set ascAppId in eas.json (App Store Connect → App → Apple ID)
+npm run testflight
+```
 
 ## Phase 6 — Submit for review
 

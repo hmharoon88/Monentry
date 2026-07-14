@@ -21,3 +21,14 @@ export function confirmClearAll(onConfirm: () => void): void {
     ],
   );
 }
+
+export function confirmDeleteAccount(onConfirm: () => void): void {
+  Alert.alert(
+    'Delete account?',
+    'This permanently deletes your Monentry account, cloud profile, and personal backup data. Shared group entries stay with the group. This cannot be undone.',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete account', style: 'destructive', onPress: onConfirm },
+    ],
+  );
+}

@@ -1,7 +1,8 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
-import { OAuthProvider, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { OAuthProvider, GoogleAuthProvider, signInWithCredential, updateProfile } from 'firebase/auth';
 import { Platform } from 'react-native';
+import { isAppleSignInConfigured } from '../config/apple';
 import { getFirebaseAuth } from '../config/firebase';
 import { ensureUserProfile } from '../sync/firestoreSync';
 
@@ -12,11 +13,25 @@ function generateNonce(length = 32): string {
 }
 
 export async function isAppleSignInAvailable(): Promise<boolean> {
-  if (Platform.OS !== 'ios') {
+  if (Platform.OS !== 'ios' || !isAppleSignInConfigured()) {
     return false;
   }
 
   return AppleAuthentication.isAvailableAsync();
+}
+
+function formatAppleFullName(
+  fullName: AppleAuthentication.AppleAuthenticationFullName | null,
+): string | null {
+  if (!fullName) {
+    return null;
+  }
+
+  const parts = [fullName.givenName, fullName.familyName].filter(
+    (part): part is string => Boolean(part?.trim()),
+  );
+
+  return parts.length > 0 ? parts.join(' ') : null;
 }
 
 export async function signInWithApple(): Promise<void> {
@@ -51,7 +66,13 @@ export async function signInWithApple(): Promise<void> {
 
   const result = await signInWithCredential(getFirebaseAuth(), credential);
   const email = result.user.email ?? appleCredential.email ?? '';
-  await ensureUserProfile(result.user.uid, email);
+  const displayName = formatAppleFullName(appleCredential.fullName);
+
+  if (displayName && !result.user.displayName) {
+    await updateProfile(result.user, { displayName });
+  }
+
+  await ensureUserProfile(result.user.uid, email, { displayName });
 }
 
 export async function signInWithGoogleIdToken(idToken: string): Promise<void> {

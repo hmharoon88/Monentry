@@ -1,5 +1,13 @@
 import { CategoryTotal, DayTotals, NewTransaction, Transaction } from '../types/transaction';
-import { endOfDay, isSameDay, startOfDay, startOfMonth, toISODate } from '../utils/date';
+import {
+  endOfDay,
+  endOfMonth,
+  isSameDay,
+  isSameMonth,
+  startOfDay,
+  startOfMonth,
+  toISODate,
+} from '../utils/date';
 import { getDatabase } from './database';
 
 const ACTIVE_FILTER = 'deletedAt IS NULL';
@@ -139,6 +147,11 @@ export async function clearAllTransactions(): Promise<Transaction[]> {
   }));
 }
 
+export async function wipeLocalTransactions(): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync('DELETE FROM transactions');
+}
+
 export async function getAllTransactions(): Promise<Transaction[]> {
   const database = await getDatabase();
   const rows = await database.getAllAsync<Record<string, unknown>>(
@@ -169,14 +182,30 @@ export async function getTransactionsForDay(date = new Date()): Promise<Transact
 
 export async function getTransactionsForMonth(date = new Date()): Promise<Transaction[]> {
   const database = await getDatabase();
-  const start = toISODate(startOfMonth(date));
-  const end = toISODate(endOfDay(date));
+  const monthStart = startOfMonth(date);
+  const now = new Date();
+  const rangeEnd = isSameMonth(monthStart, now) ? endOfDay(now) : endOfMonth(date);
+  const start = toISODate(monthStart);
+  const end = toISODate(rangeEnd);
   const rows = await database.getAllAsync<Record<string, unknown>>(
     `SELECT * FROM transactions WHERE ${ACTIVE_FILTER} AND date >= ? AND date <= ? ORDER BY date DESC`,
     start,
     end,
   );
   return rows.map(rowToTransaction);
+}
+
+export async function getEarliestTransactionMonth(): Promise<Date | null> {
+  const database = await getDatabase();
+  const row = await database.getFirstAsync<{ earliest: string | null }>(
+    `SELECT MIN(date) AS earliest FROM transactions WHERE ${ACTIVE_FILTER}`,
+  );
+
+  if (!row?.earliest) {
+    return null;
+  }
+
+  return startOfMonth(new Date(row.earliest));
 }
 
 export function calculateDayTotals(transactions: Transaction[]): DayTotals {

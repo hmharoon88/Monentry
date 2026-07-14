@@ -13,10 +13,12 @@ import {
   calculateDayTotals,
   clearAllTransactions,
   deleteTransaction,
+  getEarliestTransactionMonth,
   getTransactionsForDay,
   getTransactionsForMonth,
   groupByCategory,
 } from '../storage/transactions';
+import { addMonths, isMonthAfter, isMonthBefore, startOfMonth } from '../utils/date';
 import {
   pushClearAll,
   pushDelete,
@@ -30,8 +32,15 @@ interface TransactionContextValue {
   todayTotals: DayTotals;
   monthTotals: DayTotals;
   categoryTotals: CategoryTotal[];
+  summaryMonth: Date;
+  canGoToPreviousMonth: boolean;
+  canGoToNextMonth: boolean;
+  isViewingCurrentMonth: boolean;
   loading: boolean;
   refresh: () => Promise<void>;
+  goToPreviousMonth: () => void;
+  goToNextMonth: () => void;
+  goToCurrentMonth: () => void;
   createTransaction: (input: NewTransaction) => Promise<void>;
   removeTransaction: (id: string) => Promise<void>;
   clearAll: () => Promise<void>;
@@ -40,63 +49,92 @@ interface TransactionContextValue {
 const TransactionContext = createContext<TransactionContextValue | null>(null);
 
 export function TransactionProvider({ children }: { children: ReactNode }) {
-  const { user, syncEnabled, lastSyncedAt } = useAuth();
+  const { user, syncEnabled, syncKey, lastSyncedAt } = useAuth();
   const [todayTransactions, setTodayTransactions] = useState<Transaction[]>([]);
   const [monthTransactions, setMonthTransactions] = useState<Transaction[]>([]);
+  const [summaryMonth, setSummaryMonth] = useState(() => startOfMonth());
+  const [earliestMonth, setEarliestMonth] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const [today, month] = await Promise.all([
+    const [today, month, earliest] = await Promise.all([
       getTransactionsForDay(),
-      getTransactionsForMonth(),
+      getTransactionsForMonth(summaryMonth),
+      getEarliestTransactionMonth(),
     ]);
     setTodayTransactions(today);
     setMonthTransactions(month);
+    setEarliestMonth(earliest);
     setLoading(false);
-  }, []);
+  }, [summaryMonth]);
 
   useEffect(() => {
     refresh();
-  }, [refresh, lastSyncedAt]);
+  }, [refresh, lastSyncedAt, user?.uid]);
+
+  const canGoToPreviousMonth = Boolean(
+    earliestMonth && isMonthAfter(summaryMonth, earliestMonth),
+  );
+  const canGoToNextMonth = isMonthBefore(summaryMonth, startOfMonth());
+  const isViewingCurrentMonth = !canGoToNextMonth;
+
+  const goToPreviousMonth = useCallback(() => {
+    if (!canGoToPreviousMonth) {
+      return;
+    }
+    setSummaryMonth((month) => addMonths(month, -1));
+  }, [canGoToPreviousMonth]);
+
+  const goToNextMonth = useCallback(() => {
+    if (!canGoToNextMonth) {
+      return;
+    }
+    setSummaryMonth((month) => addMonths(month, 1));
+  }, [canGoToNextMonth]);
+
+  const goToCurrentMonth = useCallback(() => {
+    setSummaryMonth(startOfMonth());
+  }, []);
 
   const createTransaction = useCallback(
     async (input: NewTransaction) => {
       const transaction = await addTransaction(input);
 
-      if (syncEnabled && user) {
-        await pushTransaction(user.uid, transaction);
+      if (syncEnabled && user && syncKey) {
+        await pushTransaction(user.uid, syncKey, transaction);
       }
 
       await refresh();
     },
-    [refresh, syncEnabled, user],
+    [refresh, syncEnabled, syncKey, user],
   );
 
   const removeTransaction = useCallback(
     async (id: string) => {
       const deleted = await deleteTransaction(id);
 
-      if (syncEnabled && user && deleted) {
-        await pushDelete(user.uid, deleted.id, deleted.updatedAt);
+      if (syncEnabled && user && syncKey && deleted) {
+        await pushDelete(user.uid, syncKey, deleted.id, deleted.updatedAt);
       }
 
       await refresh();
     },
-    [refresh, syncEnabled, user],
+    [refresh, syncEnabled, syncKey, user],
   );
 
   const clearAll = useCallback(async () => {
     const deleted = await clearAllTransactions();
 
-    if (syncEnabled && user && deleted.length > 0) {
+    if (syncEnabled && user && syncKey && deleted.length > 0) {
       await pushClearAll(
         user.uid,
+        syncKey,
         deleted.map((tx) => tx.id),
       );
     }
 
     await refresh();
-  }, [refresh, syncEnabled, user]);
+  }, [refresh, syncEnabled, syncKey, user]);
 
   const todayTotals = useMemo(
     () => calculateDayTotals(todayTransactions),
@@ -118,8 +156,15 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
       todayTotals,
       monthTotals,
       categoryTotals,
+      summaryMonth,
+      canGoToPreviousMonth,
+      canGoToNextMonth,
+      isViewingCurrentMonth,
       loading,
       refresh,
+      goToPreviousMonth,
+      goToNextMonth,
+      goToCurrentMonth,
       createTransaction,
       removeTransaction,
       clearAll,
@@ -130,8 +175,15 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
       todayTotals,
       monthTotals,
       categoryTotals,
+      summaryMonth,
+      canGoToPreviousMonth,
+      canGoToNextMonth,
+      isViewingCurrentMonth,
       loading,
       refresh,
+      goToPreviousMonth,
+      goToNextMonth,
+      goToCurrentMonth,
       createTransaction,
       removeTransaction,
       clearAll,

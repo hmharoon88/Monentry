@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryBar } from '../../src/components/CategoryBar';
 import { EmptyState } from '../../src/components/EmptyState';
@@ -13,10 +13,24 @@ import { formatMonthLabel } from '../../src/utils/date';
 
 export default function SummaryScreen() {
   const { colors } = useTheme();
-  const { monthTransactions, monthTotals, categoryTotals, removeTransaction, refresh } =
-    useTransactions();
+  const {
+    monthTransactions,
+    monthTotals,
+    categoryTotals,
+    summaryMonth,
+    canGoToPreviousMonth,
+    canGoToNextMonth,
+    isViewingCurrentMonth,
+    removeTransaction,
+    refresh,
+    goToPreviousMonth,
+    goToNextMonth,
+    goToCurrentMonth,
+  } = useTransactions();
   const maxAmount = categoryTotals[0]?.amount ?? 0;
   const expenseCategories = categoryTotals.filter((c) => c.type === 'expense');
+  const monthLabel = formatMonthLabel(summaryMonth);
+  const entriesSectionTitle = isViewingCurrentMonth ? 'This month' : monthLabel;
 
   useFocusEffect(
     useCallback(() => {
@@ -29,9 +43,41 @@ export default function SummaryScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>Summary</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {formatMonthLabel()}
-          </Text>
+
+          <View style={styles.monthNav}>
+            <Pressable
+              onPress={goToPreviousMonth}
+              disabled={!canGoToPreviousMonth}
+              hitSlop={12}
+              style={({ pressed }) => [
+                styles.monthNavButton,
+                { borderColor: colors.border, opacity: !canGoToPreviousMonth ? 0.35 : pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Text style={[styles.monthNavArrow, { color: colors.textPrimary }]}>‹</Text>
+            </Pressable>
+
+            <View style={styles.monthLabelBlock}>
+              <Text style={[styles.monthLabel, { color: colors.textPrimary }]}>{monthLabel}</Text>
+              {!isViewingCurrentMonth ? (
+                <Pressable onPress={goToCurrentMonth} hitSlop={8}>
+                  <Text style={[styles.jumpToCurrent, { color: colors.primary }]}>Jump to this month</Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <Pressable
+              onPress={goToNextMonth}
+              disabled={!canGoToNextMonth}
+              hitSlop={12}
+              style={({ pressed }) => [
+                styles.monthNavButton,
+                { borderColor: colors.border, opacity: !canGoToNextMonth ? 0.35 : pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Text style={[styles.monthNavArrow, { color: colors.textPrimary }]}>›</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={[styles.totalsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -65,7 +111,7 @@ export default function SummaryScreen() {
         <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {expenseCategories.length === 0 ? (
             <EmptyState
-              title="No expenses this month"
+              title={isViewingCurrentMonth ? 'No expenses this month' : `No expenses in ${monthLabel}`}
               subtitle="Your category breakdown will appear here."
             />
           ) : (
@@ -75,14 +121,21 @@ export default function SummaryScreen() {
           )}
         </View>
 
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>This month</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{entriesSectionTitle}</Text>
         <Text style={[styles.hint, { color: colors.textTertiary }]}>
           Long-press an entry to delete it
         </Text>
 
         <View style={[styles.entriesCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {monthTransactions.length === 0 ? (
-            <EmptyState title="No entries this month" subtitle="Add expenses or income on Today." />
+            <EmptyState
+              title={isViewingCurrentMonth ? 'No entries this month' : `No entries in ${monthLabel}`}
+              subtitle={
+                isViewingCurrentMonth
+                  ? 'Add expenses or income on Today.'
+                  : 'Try another month, or add new entries on Today.'
+              }
+            />
           ) : (
             monthTransactions.map((tx) => (
               <TransactionRow
@@ -114,10 +167,39 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.title,
     fontWeight: '700',
+    marginBottom: spacing.md,
   },
-  subtitle: {
-    fontSize: typography.label,
-    marginTop: 2,
+  monthNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  monthNavButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthNavArrow: {
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: '300',
+  },
+  monthLabelBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  monthLabel: {
+    fontSize: typography.body,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  jumpToCurrent: {
+    fontSize: typography.caption,
+    fontWeight: '600',
+    marginTop: 4,
   },
   totalsCard: {
     borderRadius: radius.lg,

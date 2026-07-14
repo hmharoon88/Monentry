@@ -31,6 +31,36 @@ export function startOfMonth(date = new Date()): Date {
   return d;
 }
 
+export function endOfMonth(date = new Date()): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + 1, 0);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+export function addMonths(date: Date, months: number): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months, 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export function isSameMonth(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+export function isMonthAfter(a: Date, b: Date): boolean {
+  const yearDiff = a.getFullYear() - b.getFullYear();
+  if (yearDiff !== 0) {
+    return yearDiff > 0;
+  }
+  return a.getMonth() > b.getMonth();
+}
+
+export function isMonthBefore(a: Date, b: Date): boolean {
+  return isMonthAfter(b, a);
+}
+
 export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: 'numeric',
